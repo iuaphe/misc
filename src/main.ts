@@ -2,6 +2,23 @@ import vert from "./vert.glsl?raw";
 import frag from "./frag.glsl?raw";
 import "./style.css";
 
+const createVao = (
+  gl: WebGL2RenderingContext,
+  location: number,
+  verticies: number[]
+): WebGLVertexArrayObject => {
+  const vao = gl.createVertexArray()!;
+  gl.bindVertexArray(vao);
+
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticies), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(location);
+  gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
+
+  return vao;
+};
+
 const canvas = document.querySelector("canvas")!;
 
 const gl = canvas.getContext("webgl2")!;
@@ -28,27 +45,52 @@ gl.linkProgram(program);
 gl.useProgram(program);
 
 const positionLocation = gl.getAttribLocation(program, "a_position")!;
+
 const timeUniformLocation = gl.getUniformLocation(program, "u_time")!;
+const centerUniformLocation = gl.getUniformLocation(program, "u_center")!;
+const colorUniformLocation = gl.getUniformLocation(program, "u_color")!;
 const ratioUniformLocation = gl.getUniformLocation(program, "u_ratio")!;
 
-const vao = gl.createVertexArray();
-gl.bindVertexArray(vao);
+type Square = {
+  vao: WebGLVertexArrayObject;
+  speed: number;
+  color: [number, number, number];
+  center: [number, number];
+};
 
-const positionBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-gl.bufferData(
-  gl.ARRAY_BUFFER,
-  new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, -1, 1, 1, 1]),
-  gl.STATIC_DRAW
-);
-gl.enableVertexAttribArray(positionLocation);
-gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+const squares: Square[] = [];
+
+const squareCount = 20;
+
+for (let intY = 0; intY < squareCount; intY++) {
+  let x = 0;
+  let y = intY / (squareCount / 2) - 1;
+  const squareSize = 2 / squareCount;
+  squares.push({
+    vao: createVao(gl, positionLocation, [
+      x,
+      y,
+      x + squareSize,
+      y,
+      x + squareSize,
+      y + squareSize,
+      x,
+      y,
+      x,
+      y + squareSize,
+      x + squareSize,
+      y + squareSize,
+    ]),
+    speed: Math.random() + 0.5,
+    center: [x + squareSize / 2, y + squareSize / 2],
+    color: [Math.random(), Math.random(), Math.random()],
+  });
+}
 
 gl.useProgram(program);
 
 const primitiveType = gl.TRIANGLES;
 const count = 6;
-gl.drawArrays(primitiveType, 0, count);
 
 let u = 0;
 
@@ -62,9 +104,15 @@ const draw = () => {
 
   u += 0.01;
 
-  gl.uniform1f(timeUniformLocation, u);
   gl.uniform1f(ratioUniformLocation, canvas.width / canvas.height);
-  gl.drawArrays(primitiveType, 0, count);
+
+  for (const square of squares) {
+    gl.bindVertexArray(square.vao);
+    gl.uniform1f(timeUniformLocation, u * square.speed);
+    gl.uniform2f(centerUniformLocation, ...square.center);
+    gl.uniform3f(colorUniformLocation, ...square.color);
+    gl.drawArrays(primitiveType, 0, count);
+  }
 };
 
 draw();

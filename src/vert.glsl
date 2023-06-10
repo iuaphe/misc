@@ -10,10 +10,11 @@ out float v_time;
 
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
+  gl_Position.x += sin(u_time);
   
-  // gl_Position.x /= u_ratio;
+  gl_Position.x /= u_ratio;
 
   v_position = a_position;
-  v_position.y /= u_ratio;
+  // v_position.y /= u_ratio;
   v_time = u_time;
 }
