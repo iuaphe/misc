@@ -2,6 +2,8 @@ import vert from "./vert.glsl?raw";
 import frag from "./frag.glsl?raw";
 import "./style.css";
 
+declare const GIF: any;
+
 const createVao = (
   gl: WebGL2RenderingContext,
   location: number,
@@ -95,10 +97,19 @@ const render = (image: TexImageSource) => {
   const count = 6;
 
   let u = 0;
+/*
+  const gif = new GIF({
+    workers: 2,
+    quality: 5,
+    width: window.innerWidth * 1.5,
+    height: window.innerHeight * 1.5,
+  });
 
+  gif.on("finished", (blob: any) => {
+    window.open(URL.createObjectURL(blob));
+  });
+*/
   const draw = () => {
-    requestAnimationFrame(draw);
-
     canvas.width = window.innerWidth * 1.5;
     canvas.height = window.innerHeight * 1.5;
 
@@ -112,7 +123,26 @@ const render = (image: TexImageSource) => {
 
     gl.bindVertexArray(vao);
     gl.drawArrays(primitiveType, 0, count);
+requestAnimationFrame(draw);
   };
+/*
+  let imagesLoaded = 0;
 
-  draw();
+  for (let i = 0; i < 60; i++) {
+    draw();
+    const img = new Image();
+    img.src = canvas.toDataURL();
+    img.onload = () => {
+      console.log("loaded!" + imagesLoaded);
+      gif.addFrame(img, { delay: 1000 / 60 });
+      imagesLoaded++;
+      if (imagesLoaded === 60) {
+        console.log("rendering!");
+        gif.render();
+      }
+    };
+  }
+  console.log("done!");
+*/
+requestAnimationFrame(draw);
 };
