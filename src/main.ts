@@ -128,14 +128,22 @@ type Node = {
   color: [number, number, number];
 };
 
+type Edge = {
+  endNodeLabel: number;
+  color: [number, number, number];
+};
+
 const nodes: Node[] = [];
-const edges: Map<number, number[]> = new Map();
+const edges: Map<number, Edge[]> = new Map();
 
 let nextFreeLabel = 0;
 
+const randomColor = () =>
+  [Math.random(), Math.random(), Math.random()] as [number, number, number];
+
 const addEdge = (i: number, j: number) => {
-  edges.get(j)!.push(i);
-  edges.get(i)!.push(j);
+  edges.get(j)!.push({ endNodeLabel: i, color: randomColor() });
+  edges.get(i)!.push({ endNodeLabel: j, color: randomColor() });
 };
 
 const addNode = (position: Vector) => {
@@ -143,7 +151,7 @@ const addNode = (position: Vector) => {
     label: nextFreeLabel,
     position,
     velocity: { x: Math.random(), y: Math.random() },
-    color: [Math.random(), Math.random(), Math.random()],
+    color: randomColor(),
   });
   edges.set(nextFreeLabel, []);
   nextFreeLabel++;
@@ -190,8 +198,8 @@ const draw = (time: number) => {
 
   for (const node of nodes) {
     const adj = edges.get(node.label)!;
-    for (const connectedLabel of adj) {
-      const connectedNode = nodes.find((n) => n.label === connectedLabel)!;
+    for (const edge of adj) {
+      const connectedNode = nodes.find((n) => n.label === edge.endNodeLabel)!;
       const dist = Math.hypot(
         (connectedNode.position.y - node.position.y) / 2,
         (connectedNode.position.x - node.position.x) / 2
@@ -207,7 +215,7 @@ const draw = (time: number) => {
         dist,
         0.01,
         angle,
-        [0, 0, 0]
+        edge.color
       );
     }
   }
