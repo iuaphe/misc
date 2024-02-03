@@ -37,6 +37,7 @@ const standardLocs = (program: WebGLProgram) => ({
   scaleYUniformLocation: gl.getUniformLocation(program, "u_scale_y")!,
   rotationUniformLocation: gl.getUniformLocation(program, "u_rotation")!,
   offsetUniformLocation: gl.getUniformLocation(program, "u_offset")!,
+  colorUniformLocation: gl.getUniformLocation(program, "u_color")!,
 });
 
 const bufferFrom = (nums: number[]): WebGLBuffer => {
@@ -97,17 +98,20 @@ const drawObject = (
     scaleXUniformLocation: WebGLUniformLocation;
     scaleYUniformLocation: WebGLUniformLocation;
     rotationUniformLocation: WebGLUniformLocation;
+    colorUniformLocation: WebGLUniformLocation;
   },
   offsetX: number,
   offsetY: number,
   scaleX: number,
   scaleY: number,
-  rotation: number
+  rotation: number,
+  color: [number, number, number]
 ) => {
   gl.uniform2f(objectLocs.offsetUniformLocation, offsetX, offsetY);
   gl.uniform1f(objectLocs.scaleXUniformLocation, scaleX);
   gl.uniform1f(objectLocs.scaleYUniformLocation, scaleY);
   gl.uniform1f(objectLocs.rotationUniformLocation, rotation);
+  gl.uniform3f(objectLocs.colorUniformLocation, ...color);
 
   gl.drawArrays(gl.TRIANGLES, 0, positions.length / 2);
 };
@@ -121,6 +125,7 @@ type Node = {
   label: number;
   position: Vector;
   velocity: Vector;
+  color: [number, number, number];
 };
 
 const nodes: Node[] = [];
@@ -138,23 +143,24 @@ const addNode = (position: Vector) => {
     label: nextFreeLabel,
     position,
     velocity: { x: Math.random(), y: Math.random() },
+    color: [Math.random(), Math.random(), Math.random()],
   });
   edges.set(nextFreeLabel, []);
   nextFreeLabel++;
 };
 
-const NUM_NODES = 10;
+const NUM_NODES = 30;
 
 for (let i = 0; i < NUM_NODES; i++) {
   addNode({
-    x: Math.random() * 2 - 1,
-    y: Math.random() * 2 - 1,
+    x: Math.random() * 1.75 - 1.75 / 2,
+    y: Math.random() * 1.75 - 1.75 / 2,
   });
 }
 
 for (let i = 0; i < NUM_NODES; i++) {
   for (let j = 0; j < NUM_NODES; j++) {
-    if (Math.random() < 0.7) {
+    if (Math.random() < 0.1) {
       addEdge(i, j);
     }
   }
@@ -184,56 +190,11 @@ const draw = (time: number) => {
 
   for (const node of nodes) {
     const adj = edges.get(node.label)!;
-    for (const otherNode of nodes) {
-      const dist = Math.hypot(
-        otherNode.position.y - node.position.y,
-        otherNode.position.x - node.position.x
-      );
-      const angle = Math.atan2(
-        otherNode.position.y - node.position.y,
-        otherNode.position.x - node.position.x
-      );
-
-      node.velocity.x -=
-        (Math.pow(dist / 3.0, 2.0) * Math.cos(angle) * delta) / 1000;
-      node.velocity.y -=
-        (Math.pow(dist / 3.0, 2.0) * Math.sin(angle) * delta) / 1000;
-
-      if (adj.includes(otherNode.label)) {
-        node.velocity.x +=
-          ((Math.pow(dist - 1.0, 1.0) * Math.cos(angle) * delta) / 1000) * 5.0;
-        node.velocity.y +=
-          ((Math.pow(dist - 1.0, 1.0) * Math.sin(angle) * delta) / 1000) * 5.0;
-      }
-    }
-    node.velocity.x *= Math.pow(0.4, delta / 1000);
-    node.velocity.y *= Math.pow(0.4, delta / 1000);
-    node.position.x += (node.velocity.x * delta) / 1000;
-    node.position.y += (node.velocity.y * delta) / 1000;
-  }
-
-  let total: Vector = { x: 0, y: 0 };
-
-  for (const node of nodes) {
-    total.x += node.position.x;
-    total.y += node.position.y;
-  }
-
-  total.x /= nodes.length;
-  total.y /= nodes.length;
-
-  for (const node of nodes) {
-    node.position.x -= total.x;
-    node.position.y -= total.y;
-  }
-
-  for (const node of nodes) {
-    const adj = edges.get(node.label)!;
     for (const connectedLabel of adj) {
       const connectedNode = nodes.find((n) => n.label === connectedLabel)!;
       const dist = Math.hypot(
-        connectedNode.position.y - node.position.y,
-        connectedNode.position.x - node.position.x
+        (connectedNode.position.y - node.position.y) / 2,
+        (connectedNode.position.x - node.position.x) / 2
       );
       const angle = Math.atan2(
         connectedNode.position.y - node.position.y,
@@ -245,7 +206,8 @@ const draw = (time: number) => {
         (node.position.y + connectedNode.position.y) / 2,
         dist,
         0.01,
-        angle
+        angle,
+        [0, 0, 0]
       );
     }
   }
@@ -254,7 +216,15 @@ const draw = (time: number) => {
   gl.uniform1f(circleLocs.aspectRatioUniformLocation, aspectRatio);
 
   for (const node of nodes) {
-    drawObject(circleLocs, node.position.x, node.position.y, 0.1, 0.1, 0);
+    drawObject(
+      circleLocs,
+      node.position.x,
+      node.position.y,
+      0.1,
+      0.1,
+      0,
+      node.color
+    );
   }
 
   if (selectedNode !== undefined) {
@@ -271,6 +241,7 @@ document.addEventListener("mousemove", (e) => {
 
   y = -(y * 2 - 1);
   x = x * 2 - 1;
+  x *= window.innerWidth / window.innerHeight;
 
   mousePos = { x, y };
 });
