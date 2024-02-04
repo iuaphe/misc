@@ -142,43 +142,150 @@ const randomColor = () =>
   [Math.random(), Math.random(), Math.random()] as [number, number, number];
 
 const addEdge = (i: number, j: number) => {
-  edges.get(j)!.push({ endNodeLabel: i, color: randomColor() });
-  edges.get(i)!.push({ endNodeLabel: j, color: randomColor() });
+  edges.get(j)!.push({
+    endNodeLabel: i,
+    color: [0.34901960784, 0.34901960784, 0.34901960784],
+  });
+  edges.get(i)!.push({
+    endNodeLabel: j,
+    color: [0.34901960784, 0.34901960784, 0.34901960784],
+  });
 };
 
 const addNode = (position: Vector) => {
   nodes.push({
     label: nextFreeLabel,
     position,
-    velocity: { x: Math.random(), y: Math.random() },
+    velocity: { x: 0, y: 0 },
+    // color: [201 / 255, 218 / 255, 248 / 255],
     color: randomColor(),
   });
   edges.set(nextFreeLabel, []);
   nextFreeLabel++;
 };
 
-const NUM_NODES = 30;
+const NUM_NODES = 200;
 
 for (let i = 0; i < NUM_NODES; i++) {
   addNode({
-    x: Math.random() * 1.75 - 1.75 / 2,
-    y: Math.random() * 1.75 - 1.75 / 2,
+    x: Math.random() * 300 - 300 / 2,
+    y: Math.random() * 300 - 300 / 2,
   });
 }
 
 for (let i = 0; i < NUM_NODES; i++) {
   for (let j = 0; j < NUM_NODES; j++) {
-    if (Math.random() < 0.1) {
+    if (i < j && Math.random() < 1 / Math.pow(i - j, 2)) {
       addEdge(i, j);
     }
   }
 }
+
+// for (const node of nodes) {
+//   if (edges.get(node.label)!.length === 0) {
+//     edges.get(node.label)!.push({ endNodeLabel: 0, color: randomColor() });
+//     edges.get(0)!.push({ endNodeLabel: node.label, color: randomColor() });
+//   }
+// }
+
+let viewScale = 0.03;
+
+// let lastUpdate = 0;
+// let processing = [0];
+// let processed = new Set();
 
 const draw = (time: number) => {
   requestAnimationFrame(draw);
 
   const delta = time - lastTime;
   lastTime = time;
+
+  // if (time - lastUpdate > 3000 && processing.length > 0) {
+  //   const nextLabel = processing.pop()!;
+  //   processed.add(nextLabel);
+  //   const node = nodes.find((node) => node.label === nextLabel)!;
+  //   node.color = [1, 0, 0];
+  //   for (const edge of edges.get(nextLabel)!) {
+  //     console.log(edge);
+  //     if (!processed.has(edge.endNodeLabel)) {
+  //       edge.color = [1, 0, 0];
+  //       processing.push(edge.endNodeLabel);
+  //     }
+  //   }
+  //   lastUpdate = time;
+  // }
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    for (let j = 0; j < i; j++) {
+      const otherNode = nodes[j];
+      const dist = Math.hypot(
+        otherNode.position.y - node.position.y,
+        otherNode.position.x - node.position.x
+      );
+      const angle = Math.atan2(
+        otherNode.position.y - node.position.y,
+        otherNode.position.x - node.position.x
+      );
+
+      if (
+        edges.get(i)!.find((edge) => edge.endNodeLabel === otherNode.label) !==
+        undefined
+      ) {
+        const springMagnitude = (1 * (dist - 0.3) * delta) / 1000;
+
+        node.velocity.x += springMagnitude * Math.cos(angle);
+        node.velocity.y += springMagnitude * Math.sin(angle);
+        otherNode.velocity.x += -1 * springMagnitude * Math.cos(angle);
+        otherNode.velocity.y += -1 * springMagnitude * Math.sin(angle);
+      }
+
+      const repulsionMagnitude = ((10.0 / Math.pow(dist, 2)) * delta) / 1000;
+
+      node.velocity.x += -1 * repulsionMagnitude * Math.cos(angle);
+      node.velocity.y += -1 * repulsionMagnitude * Math.sin(angle);
+      otherNode.velocity.x += repulsionMagnitude * Math.cos(angle);
+      otherNode.velocity.y += repulsionMagnitude * Math.sin(angle);
+    }
+    node.velocity.y *= Math.pow(0.3, delta / 1000);
+    node.velocity.x *= Math.pow(0.3, delta / 1000);
+    node.position.x += (node.velocity.x * delta) / 1000;
+    node.position.y += (node.velocity.y * delta) / 1000;
+  }
+
+  let total: Vector = { x: 0, y: 0 };
+
+  for (const node of nodes) {
+    total.x += node.position.x;
+    total.y += node.position.y;
+  }
+
+  total.x /= nodes.length;
+  total.y /= nodes.length;
+
+  for (const node of nodes) {
+    node.position.x -= total.x;
+    node.position.y -= total.y;
+  }
+
+  /* gravity (?) */
+
+  // for (const node of nodes) {
+  //   const dist = Math.hypot(node.position.y, node.position.x);
+  //   const angle = Math.atan2(node.position.y, node.position.x);
+  //   node.velocity.x +=
+  //     -1 *
+  //     0.01 *
+  //     Math.sign(dist - 50) *
+  //     Math.pow(Math.abs(dist - 50), 0.5) *
+  //     Math.cos(angle);
+  //   node.velocity.y +=
+  //     -1 *
+  //     0.01 *
+  //     Math.sign(dist - 50) *
+  //     Math.pow(Math.abs(dist - 50), 0.5) *
+  //     Math.sin(angle);
+  // }
 
   canvas.width = window.innerWidth * 1.5;
   canvas.height = window.innerHeight * 1.5;
@@ -199,24 +306,28 @@ const draw = (time: number) => {
   for (const node of nodes) {
     const adj = edges.get(node.label)!;
     for (const edge of adj) {
-      const connectedNode = nodes.find((n) => n.label === edge.endNodeLabel)!;
-      const dist = Math.hypot(
-        (connectedNode.position.y - node.position.y) / 2,
-        (connectedNode.position.x - node.position.x) / 2
-      );
-      const angle = Math.atan2(
-        connectedNode.position.y - node.position.y,
-        connectedNode.position.x - node.position.x
-      );
-      drawObject(
-        squareLocs,
-        (node.position.x + connectedNode.position.x) / 2,
-        (node.position.y + connectedNode.position.y) / 2,
-        dist,
-        0.01,
-        angle,
-        edge.color
-      );
+      if (node.label < edge.endNodeLabel) {
+        const connectedNode = nodes.find((n) => n.label === edge.endNodeLabel)!;
+        const dist = Math.hypot(
+          (connectedNode.position.y - node.position.y) / 2,
+          (connectedNode.position.x - node.position.x) / 2
+        );
+        const angle = Math.atan2(
+          connectedNode.position.y - node.position.y,
+          connectedNode.position.x - node.position.x
+        );
+        drawObject(
+          squareLocs,
+          (node.position.x * viewScale + connectedNode.position.x * viewScale) /
+            2,
+          (node.position.y * viewScale + connectedNode.position.y * viewScale) /
+            2,
+          dist * viewScale,
+          0.01 * Math.sqrt(viewScale),
+          angle,
+          edge.color
+        );
+      }
     }
   }
 
@@ -226,18 +337,18 @@ const draw = (time: number) => {
   for (const node of nodes) {
     drawObject(
       circleLocs,
-      node.position.x,
-      node.position.y,
-      0.1,
-      0.1,
+      node.position.x * viewScale,
+      node.position.y * viewScale,
+      0.1 * Math.sqrt(viewScale),
+      0.1 * Math.sqrt(viewScale),
       0,
       node.color
     );
   }
 
   if (selectedNode !== undefined) {
-    selectedNode.position.x = mousePos.x;
-    selectedNode.position.y = mousePos.y;
+    selectedNode.velocity.x += mousePos.x - selectedNode.position.x;
+    selectedNode.velocity.y += mousePos.y - selectedNode.position.y;
   }
 };
 
@@ -250,6 +361,9 @@ document.addEventListener("mousemove", (e) => {
   y = -(y * 2 - 1);
   x = x * 2 - 1;
   x *= window.innerWidth / window.innerHeight;
+
+  x /= viewScale;
+  y /= viewScale;
 
   mousePos = { x, y };
 });
@@ -270,6 +384,14 @@ document.addEventListener("mousedown", (_e) => {
 document.addEventListener("mouseup", (_e) => {
   if (selectedNode !== undefined) {
     selectedNode = undefined;
+  }
+});
+
+document.addEventListener("wheel", (e) => {
+  if (e.deltaY > 0) {
+    viewScale *= 0.9;
+  } else {
+    viewScale /= 0.9;
   }
 });
 
