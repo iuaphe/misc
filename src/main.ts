@@ -253,20 +253,20 @@ const draw = (time: number) => {
     node.position.y += (node.velocity.y * delta) / 1000;
   }
 
-  let total: Vector = { x: 0, y: 0 };
+  // let total: Vector = { x: 0, y: 0 };
 
-  for (const node of nodes) {
-    total.x += node.position.x;
-    total.y += node.position.y;
-  }
+  // for (const node of nodes) {
+  //   total.x += node.position.x;
+  //   total.y += node.position.y;
+  // }
 
-  total.x /= nodes.length;
-  total.y /= nodes.length;
+  // total.x /= nodes.length;
+  // total.y /= nodes.length;
 
-  for (const node of nodes) {
-    node.position.x -= total.x;
-    node.position.y -= total.y;
-  }
+  // for (const node of nodes) {
+  //   node.position.x -= total.x;
+  //   node.position.y -= total.y;
+  // }
 
   /* gravity (?) */
 
@@ -286,6 +286,31 @@ const draw = (time: number) => {
   //     Math.pow(Math.abs(dist - 50), 0.5) *
   //     Math.sin(angle);
   // }
+
+  if (pressing) {
+    for (const node of nodes) {
+      const dist = Math.hypot(
+        node.position.y - mousePos.y,
+        node.position.x - mousePos.x
+      );
+      const angle = Math.atan2(
+        node.position.y - mousePos.y,
+        node.position.x - mousePos.x
+      );
+      node.velocity.x +=
+        -1 *
+        0.01 *
+        Math.sign(dist - 50) *
+        Math.pow(Math.abs(dist - 50), 2.0) *
+        Math.cos(angle);
+      node.velocity.y +=
+        -1 *
+        0.01 *
+        Math.sign(dist - 50) *
+        Math.pow(Math.abs(dist - 50), 2.0) *
+        Math.sin(angle);
+    }
+  }
 
   canvas.width = window.innerWidth * 1.5;
   canvas.height = window.innerHeight * 1.5;
@@ -345,11 +370,6 @@ const draw = (time: number) => {
       node.color
     );
   }
-
-  if (selectedNode !== undefined) {
-    selectedNode.velocity.x += mousePos.x - selectedNode.position.x;
-    selectedNode.velocity.y += mousePos.y - selectedNode.position.y;
-  }
 };
 
 let mousePos: Vector = { x: 0, y: 0 };
@@ -368,23 +388,14 @@ document.addEventListener("mousemove", (e) => {
   mousePos = { x, y };
 });
 
-let selectedNode: Node | undefined = undefined;
+let pressing = false;
 
 document.addEventListener("mousedown", (_e) => {
-  const clickedNode = nodes.find(
-    (node) =>
-      Math.hypot(node.position.x - mousePos.x, node.position.y - mousePos.y) <
-      0.1
-  );
-  if (clickedNode !== undefined) {
-    selectedNode = clickedNode;
-  }
+  pressing = true;
 });
 
 document.addEventListener("mouseup", (_e) => {
-  if (selectedNode !== undefined) {
-    selectedNode = undefined;
-  }
+  pressing = false;
 });
 
 document.addEventListener("wheel", (e) => {
