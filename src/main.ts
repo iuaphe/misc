@@ -247,8 +247,8 @@ const draw = (time: number) => {
       otherNode.velocity.x += repulsionMagnitude * Math.cos(angle);
       otherNode.velocity.y += repulsionMagnitude * Math.sin(angle);
     }
-    node.velocity.y *= Math.pow(0.3, delta / 1000);
-    node.velocity.x *= Math.pow(0.3, delta / 1000);
+    node.velocity.y *= Math.pow(0.5, delta / 1000);
+    node.velocity.x *= Math.pow(0.5, delta / 1000);
     node.position.x += (node.velocity.x * delta) / 1000;
     node.position.y += (node.velocity.y * delta) / 1000;
   }
