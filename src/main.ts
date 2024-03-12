@@ -152,9 +152,10 @@ const addEdge = (i: number, j: number) => {
   });
 };
 
-const addNode = (position: Vector) => {
+const addNode = (position: Vector): number => {
+  let newLabel = nextFreeLabel;
   nodes.push({
-    label: nextFreeLabel,
+    label: newLabel,
     position,
     velocity: { x: 0, y: 0 },
     // color: [201 / 255, 218 / 255, 248 / 255],
@@ -162,59 +163,28 @@ const addNode = (position: Vector) => {
   });
   edges.set(nextFreeLabel, []);
   nextFreeLabel++;
+  return newLabel;
 };
 
-const NUM_NODES = 200;
-
-for (let i = 0; i < NUM_NODES; i++) {
-  addNode({
-    x: Math.random() * 300 - 300 / 2,
-    y: Math.random() * 300 - 300 / 2,
+const newBinaryTree = (level: number, index: number): number => {
+  const rootLabel = addNode({
+    x: (30 / (level * level)) * (index - (1 / 2) * (Math.pow(2, level) - 1)),
+    y: -level * 10,
   });
-}
-
-for (let i = 0; i < NUM_NODES; i++) {
-  for (let j = 0; j < NUM_NODES; j++) {
-    if (i < j && Math.random() < 1 / Math.pow(i - j, 2)) {
-      addEdge(i, j);
-    }
+  if (Math.random() < Math.pow(0.92, level)) {
+    const leftLabel = newBinaryTree(level + 1, 2 * index);
+    addEdge(rootLabel, leftLabel);
   }
-}
+  if (Math.random() < Math.pow(0.93, level)) {
+    const rightLabel = newBinaryTree(level + 1, 2 * index + 1);
+    addEdge(rootLabel, rightLabel);
+  }
+  return rootLabel;
+};
 
-// for (const node of nodes) {
-//   if (edges.get(node.label)!.length === 0) {
-//     edges.get(node.label)!.push({ endNodeLabel: 0, color: randomColor() });
-//     edges.get(0)!.push({ endNodeLabel: node.label, color: randomColor() });
-//   }
-// }
+const root = newBinaryTree(0, 0);
 
-let viewScale = 0.03;
-
-// let lastUpdate = 0;
-// let processing = [0];
-// let processed = new Set();
-
-const draw = (time: number) => {
-  requestAnimationFrame(draw);
-
-  const delta = time - lastTime;
-  lastTime = time;
-
-  // if (time - lastUpdate > 3000 && processing.length > 0) {
-  //   const nextLabel = processing.pop()!;
-  //   processed.add(nextLabel);
-  //   const node = nodes.find((node) => node.label === nextLabel)!;
-  //   node.color = [1, 0, 0];
-  //   for (const edge of edges.get(nextLabel)!) {
-  //     console.log(edge);
-  //     if (!processed.has(edge.endNodeLabel)) {
-  //       edge.color = [1, 0, 0];
-  //       processing.push(edge.endNodeLabel);
-  //     }
-  //   }
-  //   lastUpdate = time;
-  // }
-
+const doPhysics = (delta: number) => {
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     for (let j = 0; j < i; j++) {
@@ -253,40 +223,41 @@ const draw = (time: number) => {
     node.position.y += (node.velocity.y * delta) / 1000;
   }
 
-  // let total: Vector = { x: 0, y: 0 };
+  let total: Vector = { x: 0, y: 0 };
 
-  // for (const node of nodes) {
-  //   total.x += node.position.x;
-  //   total.y += node.position.y;
-  // }
+  for (const node of nodes) {
+    total.x += node.position.x;
+    total.y += node.position.y;
+  }
 
-  // total.x /= nodes.length;
-  // total.y /= nodes.length;
+  total.x /= nodes.length;
+  total.y /= nodes.length;
 
-  // for (const node of nodes) {
-  //   node.position.x -= total.x;
-  //   node.position.y -= total.y;
-  // }
+  for (const node of nodes) {
+    node.position.x -= total.x;
+    node.position.y -= total.y;
+  }
 
   /* gravity (?) */
+  for (const node of nodes) {
+    const dist = Math.hypot(node.position.y, node.position.x);
+    const angle = Math.atan2(node.position.y, node.position.x);
+    node.velocity.x +=
+      -1 *
+      0.01 *
+      Math.sign(dist - 50) *
+      Math.pow(Math.abs(dist - 50), 0.5) *
+      Math.cos(angle);
+    node.velocity.y +=
+      -1 *
+      0.01 *
+      Math.sign(dist - 50) *
+      Math.pow(Math.abs(dist - 50), 0.5) *
+      Math.sin(angle);
+  }
+};
 
-  // for (const node of nodes) {
-  //   const dist = Math.hypot(node.position.y, node.position.x);
-  //   const angle = Math.atan2(node.position.y, node.position.x);
-  //   node.velocity.x +=
-  //     -1 *
-  //     0.01 *
-  //     Math.sign(dist - 50) *
-  //     Math.pow(Math.abs(dist - 50), 0.5) *
-  //     Math.cos(angle);
-  //   node.velocity.y +=
-  //     -1 *
-  //     0.01 *
-  //     Math.sign(dist - 50) *
-  //     Math.pow(Math.abs(dist - 50), 0.5) *
-  //     Math.sin(angle);
-  // }
-
+const moveWithClick = () => {
   if (pressing) {
     for (const node of nodes) {
       const dist = Math.hypot(
@@ -311,6 +282,20 @@ const draw = (time: number) => {
         Math.sin(angle);
     }
   }
+};
+
+let viewScale = 0.01;
+let viewOffset: Vector = { x: 0, y: 0 };
+
+const draw = (time: number) => {
+  requestAnimationFrame(draw);
+
+  const delta = time - lastTime;
+  lastTime = time;
+
+  // doPhysics(delta);
+
+  // moveWithClick();
 
   canvas.width = window.innerWidth * 1.5;
   canvas.height = window.innerHeight * 1.5;
@@ -362,10 +347,10 @@ const draw = (time: number) => {
   for (const node of nodes) {
     drawObject(
       circleLocs,
-      node.position.x * viewScale,
-      node.position.y * viewScale,
-      0.1 * Math.sqrt(viewScale),
-      0.1 * Math.sqrt(viewScale),
+      node.position.x * viewScale + viewOffset.x * viewScale,
+      node.position.y * viewScale + viewOffset.y * viewScale,
+      0.2 * Math.sqrt(viewScale),
+      0.2 * Math.sqrt(viewScale),
       0,
       node.color
     );
@@ -384,6 +369,12 @@ document.addEventListener("mousemove", (e) => {
 
   x /= viewScale;
   y /= viewScale;
+
+  // console.log(x - mousePos.x, y - mousePos.y);
+  if (pressing) {
+    viewOffset.x += x - mousePos.x;
+    viewOffset.y += y - mousePos.y;
+  }
 
   mousePos = { x, y };
 });
