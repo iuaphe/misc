@@ -142,6 +142,10 @@ const randomColor = () =>
   [Math.random(), Math.random(), Math.random()] as [number, number, number];
 
 const addEdge = (i: number, j: number) => {
+  if (edges.get(j)!.find((edge) => edge.endNodeLabel === i) !== undefined 
+   || edges.get(i)!.find((edge) => edge.endNodeLabel === j) !== undefined) {
+    return;
+  }
   edges.get(j)!.push({
     endNodeLabel: i,
     color: [0.34901960784, 0.34901960784, 0.34901960784],
@@ -152,19 +156,41 @@ const addEdge = (i: number, j: number) => {
   });
 };
 
+const getEdge = (i: number, j: number) => {
+  return edges.get(i)!.find((edge) => edge.endNodeLabel === j)!;
+}
+
+const removeEdge = (i: number, j: number) => {
+  edges.set(
+    j,
+    edges.get(j)!.filter((edge) => edge.endNodeLabel !== i)
+  );
+  edges.set(
+    i,
+    edges.get(i)!.filter((edge) => edge.endNodeLabel !== j)
+  );
+}
+
+const changeEdgeColor = (i: number, j: number, color: [number, number, number]) => {
+  edges.get(j)!.find((edge) => edge.endNodeLabel === i)!.color = color;
+  edges.get(i)!.find((edge) => edge.endNodeLabel === j)!.color = color;
+}
+
 const addNode = (position: Vector): number => {
   let newLabel = nextFreeLabel;
   nodes.push({
     label: newLabel,
     position,
     velocity: { x: 0, y: 0 },
-    // color: [201 / 255, 218 / 255, 248 / 255],
-    color: randomColor(),
+    color: [201 / 255, 218 / 255, 248 / 255],
+    // color: randomColor(),
   });
   edges.set(nextFreeLabel, []);
   nextFreeLabel++;
   return newLabel;
 };
+
+const getNode = (label: number) => nodes.find((node) => node.label === label)!;
 
 const newBinaryTree = (level: number, index: number): number => {
   const rootLabel = addNode({
@@ -182,7 +208,74 @@ const newBinaryTree = (level: number, index: number): number => {
   return rootLabel;
 };
 
-const root = newBinaryTree(0, 0);
+// const root = newBinaryTree(0, 0);
+
+const NUM_NODES = 30;
+
+for (let i = 0; i < NUM_NODES; i++) {
+  addNode({
+    // x: Math.random() + i * 30,
+    // y: Math.random() * 300 - 150,
+    x: 30 * Math.sin(i * 2 * Math.PI / NUM_NODES),
+    y: 30 * Math.cos(i * 2 * Math.PI / NUM_NODES)
+  });
+}
+
+for (let i = 0; i < nodes.length; i++) {
+  addEdge(i, (i + 1) % nodes.length);
+  addEdge(i, (2 * i) % nodes.length);
+  const j = Math.floor(Math.random() * nodes.length);
+  if (i !== j && Math.random() < 0.8) {
+    addEdge(i, j);
+  }
+}
+
+let dfsStack: [number | undefined, number][] = [[undefined, 0]];
+let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
+
+const doDfsStep = () => {
+  if (dfsStack.length === 0) {
+    let unvisited = -1;
+    for (let i = 0; i < nodes.length; i++) {
+      if (!dfsVisited[i]) {
+        unvisited = i;
+        break;
+      }
+    }
+    if (unvisited === -1) {
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = 0; j < nodes.length; j++) {
+          const edge = getEdge(i, j);
+          if (edge !== undefined && edge.color[0] !== 1) {
+            removeEdge(i, j);
+          }
+        }
+      }
+      return;
+    } else {
+      dfsStack.push(
+        [undefined, unvisited]
+      );
+    }
+  }
+  const current = dfsStack.splice(0, 1)[0]!;
+  // const current = dfsStack.pop()!
+  if (dfsVisited[current[1]]) {
+    doDfsStep();
+    return
+  }
+  dfsVisited[current[1]] = true;
+  nodes[current[1]].color = [1, 0, 0];
+  if (current[0] !== undefined) {
+    changeEdgeColor(current[0], current[1], [1, 0, 0]);
+  }
+  for (const edge of edges.get(current[1])!) {
+    if (!dfsVisited[edge.endNodeLabel]) {
+      dfsStack.push([current[1], edge.endNodeLabel]);
+      getNode(edge.endNodeLabel).color = [0, 1, 0];
+    }
+  }
+}
 
 const doPhysics = (delta: number) => {
   for (let i = 0; i < nodes.length; i++) {
@@ -329,9 +422,9 @@ const draw = (time: number) => {
         drawObject(
           squareLocs,
           (node.position.x * viewScale + connectedNode.position.x * viewScale) /
-            2,
+            2 + viewOffset.x * viewScale,
           (node.position.y * viewScale + connectedNode.position.y * viewScale) /
-            2,
+            2 + viewOffset.y * viewScale,
           dist * viewScale,
           0.01 * Math.sqrt(viewScale),
           angle,
@@ -395,6 +488,12 @@ document.addEventListener("wheel", (e) => {
   } else {
     viewScale /= 0.9;
   }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "d") {
+    doDfsStep();
+  } 
 });
 
 draw(0);
