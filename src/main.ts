@@ -182,7 +182,8 @@ const addNode = (position: Vector): number => {
     label: newLabel,
     position,
     velocity: { x: 0, y: 0 },
-    color: [201 / 255, 218 / 255, 248 / 255],
+    // color: [201 / 255, 218 / 255, 248 / 255],
+    color: [0.5, 0.5, 0.5]
     // color: randomColor(),
   });
   edges.set(nextFreeLabel, []);
@@ -214,10 +215,10 @@ const NUM_NODES = 30;
 
 for (let i = 0; i < NUM_NODES; i++) {
   addNode({
-    // x: Math.random() + i * 30,
-    // y: Math.random() * 300 - 150,
-    x: 30 * Math.sin(i * 2 * Math.PI / NUM_NODES),
-    y: 30 * Math.cos(i * 2 * Math.PI / NUM_NODES)
+    x: Math.random() + i * 30,
+    y: Math.random() * 500,
+    // x: 50 * Math.sin(i * 2 * Math.PI / NUM_NODES),
+    // y: 50 * Math.cos(i * 2 * Math.PI / NUM_NODES)
   });
 }
 
@@ -230,8 +231,10 @@ for (let i = 0; i < nodes.length; i++) {
   }
 }
 
-let dfsStack: [number | undefined, number][] = [[undefined, 0]];
+let dfsStack: [number | undefined, number, number][] = [[undefined, 0, 0]];
 let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
+let lastSeen = -1;
+let markedEdges: [number, number][] = [];
 
 const doDfsStep = () => {
   if (dfsStack.length === 0) {
@@ -245,8 +248,8 @@ const doDfsStep = () => {
     if (unvisited === -1) {
       for (let i = 0; i < nodes.length; i++) {
         for (let j = 0; j < nodes.length; j++) {
-          const edge = getEdge(i, j);
-          if (edge !== undefined && edge.color[0] !== 1) {
+          if (markedEdges.find((edge) => edge[0] === i && edge[1] === j) === undefined 
+        && markedEdges.find((edge) => edge[0] === j && edge[1] === i) === undefined) {
             removeEdge(i, j);
           }
         }
@@ -254,7 +257,7 @@ const doDfsStep = () => {
       return;
     } else {
       dfsStack.push(
-        [undefined, unvisited]
+        [undefined, unvisited, 0]
       );
     }
   }
@@ -265,14 +268,41 @@ const doDfsStep = () => {
     return
   }
   dfsVisited[current[1]] = true;
-  nodes[current[1]].color = [1, 0, 0];
+  if (lastSeen !== -1) {
+    nodes[lastSeen].color = [1, 0, 0];
+  }
+  nodes[current[1]].color = [0, 0, 1];
+  lastSeen = current[1];
   if (current[0] !== undefined) {
-    changeEdgeColor(current[0], current[1], [1, 0, 0]);
+    let color;
+    switch ((current[2] - 1) % 6) {
+      case 0:
+        color = [1, 0, 0];
+        break;
+      case 1:
+        color = [1, 0.5, 0];
+        break;
+      case 2:
+        color = [1, 1, 0];
+        break;
+      case 3:
+        color = [0, 1, 0];
+        break;
+      case 4:
+        color = [0, 0, 1];
+        break;
+      case 5:
+        color = [0.5, 0, 1];
+        break;
+    }
+    changeEdgeColor(current[0], current[1], color as [number, number, number]);
+    markedEdges.push([current[0], current[1]]);
   }
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
-      dfsStack.push([current[1], edge.endNodeLabel]);
+      dfsStack.push([current[1], edge.endNodeLabel, current[2] + 1]);
       getNode(edge.endNodeLabel).color = [0, 1, 0];
+      changeEdgeColor(current[1], edge.endNodeLabel, [0, 1, 0]);
     }
   }
 }
@@ -426,7 +456,7 @@ const draw = (time: number) => {
           (node.position.y * viewScale + connectedNode.position.y * viewScale) /
             2 + viewOffset.y * viewScale,
           dist * viewScale,
-          0.01 * Math.sqrt(viewScale),
+          0.08 * Math.sqrt(viewScale),
           angle,
           edge.color
         );
@@ -442,8 +472,8 @@ const draw = (time: number) => {
       circleLocs,
       node.position.x * viewScale + viewOffset.x * viewScale,
       node.position.y * viewScale + viewOffset.y * viewScale,
-      0.2 * Math.sqrt(viewScale),
-      0.2 * Math.sqrt(viewScale),
+      0.4 * Math.sqrt(viewScale),
+      0.4 * Math.sqrt(viewScale),
       0,
       node.color
     );
