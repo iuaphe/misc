@@ -3,6 +3,11 @@ import circleFragmentShaderSource from "./shaders/circle/frag.glsl?raw";
 import squareFragmentShaderSource from "./shaders/square/frag.glsl?raw";
 import "./style.css";
 
+type SearchType = 'DFS' | 'BFS';
+
+const SEARCH_TYPE: SearchType = 'BFS';
+const DO_RAINBOW_EDGES = true;
+
 const canvas = document.querySelector("canvas")!;
 
 const gl = canvas.getContext("webgl2")!;
@@ -215,10 +220,10 @@ const NUM_NODES = 300;
 
 for (let i = 0; i < NUM_NODES; i++) {
   addNode({
-    x: Math.random() + i * 30,
-    y: Math.random() * 500,
-    // x: 200 * Math.sin(i * 2 * Math.PI / NUM_NODES),
-    // y: 200 * Math.cos(i * 2 * Math.PI / NUM_NODES)
+    // x: Math.random() + i * 30,
+    // y: Math.random() * 500,
+    x: 10 * (i * 0.1 + Math.random() * 20 - 1.5) * Math.sin(i * 2 * Math.PI / NUM_NODES),
+    y: 10 * (i * 0.1 + Math.random() * 20 - 1.5) * Math.cos(i * 2 * Math.PI / NUM_NODES)
   });
 }
 
@@ -227,7 +232,7 @@ for (let i = 0; i < nodes.length; i++) {
     addEdge(i, i + 1);
   }
   // addEdge(i, (2 * i) % nodes.length);
-  const j = Math.max(Math.min(i + Math.floor(Math.random() * 9) - 5, nodes.length - 1), 0);
+  const j = Math.max(Math.min(i + Math.floor(Math.random() * 30) - 15, nodes.length - 1), 0);
   if (i !== j && Math.random() < 0.8) {
     addEdge(i, j);
   }
@@ -264,8 +269,14 @@ const doDfsStep = () => {
       );
     }
   }
-  const current = dfsStack.splice(0, 1)[0]!;
-  // const current = dfsStack.pop()!
+  let current;
+  if (SEARCH_TYPE === 'DFS') {
+    current = dfsStack.pop()!
+  } else if (SEARCH_TYPE === 'BFS') {
+    current = dfsStack.splice(0, 1)[0]!;
+  } else {
+    throw new Error();
+  }
   if (dfsVisited[current[1]]) {
     doDfsStep();
     return
@@ -278,6 +289,8 @@ const doDfsStep = () => {
   lastSeen = current[1];
   if (current[0] !== undefined) {
     let color;
+    if (DO_RAINBOW_EDGES) {
+
     switch ((current[2] - 1) % 6) {
       case 0:
         color = [1, 0, 0];
@@ -298,6 +311,9 @@ const doDfsStep = () => {
         color = [0.5, 0, 1];
         break;
     }
+  } else {
+    color = [1, 0, 0];
+  }
     lastColor = color as [number, number, number];
     changeEdgeColor(current[0], current[1], color as [number, number, number]);
     markedEdges.push([current[0], current[1]]);
