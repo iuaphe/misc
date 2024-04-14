@@ -211,21 +211,23 @@ const newBinaryTree = (level: number, index: number): number => {
 
 // const root = newBinaryTree(0, 0);
 
-const NUM_NODES = 30;
+const NUM_NODES = 300;
 
 for (let i = 0; i < NUM_NODES; i++) {
   addNode({
     x: Math.random() + i * 30,
     y: Math.random() * 500,
-    // x: 50 * Math.sin(i * 2 * Math.PI / NUM_NODES),
-    // y: 50 * Math.cos(i * 2 * Math.PI / NUM_NODES)
+    // x: 200 * Math.sin(i * 2 * Math.PI / NUM_NODES),
+    // y: 200 * Math.cos(i * 2 * Math.PI / NUM_NODES)
   });
 }
 
 for (let i = 0; i < nodes.length; i++) {
-  addEdge(i, (i + 1) % nodes.length);
-  addEdge(i, (2 * i) % nodes.length);
-  const j = Math.floor(Math.random() * nodes.length);
+  if (i < nodes.length - 1) {
+    addEdge(i, i + 1);
+  }
+  // addEdge(i, (2 * i) % nodes.length);
+  const j = Math.max(Math.min(i + Math.floor(Math.random() * 9) - 5, nodes.length - 1), 0);
   if (i !== j && Math.random() < 0.8) {
     addEdge(i, j);
   }
@@ -234,6 +236,7 @@ for (let i = 0; i < nodes.length; i++) {
 let dfsStack: [number | undefined, number, number][] = [[undefined, 0, 0]];
 let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
 let lastSeen = -1;
+let lastColor: [number, number, number] = [1, 0, 0];
 let markedEdges: [number, number][] = [];
 
 const doDfsStep = () => {
@@ -269,7 +272,7 @@ const doDfsStep = () => {
   }
   dfsVisited[current[1]] = true;
   if (lastSeen !== -1) {
-    nodes[lastSeen].color = [1, 0, 0];
+    nodes[lastSeen].color = lastColor;
   }
   nodes[current[1]].color = [0, 0, 1];
   lastSeen = current[1];
@@ -295,6 +298,7 @@ const doDfsStep = () => {
         color = [0.5, 0, 1];
         break;
     }
+    lastColor = color as [number, number, number];
     changeEdgeColor(current[0], current[1], color as [number, number, number]);
     markedEdges.push([current[0], current[1]]);
   }
