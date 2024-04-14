@@ -7,6 +7,7 @@ type SearchType = 'DFS' | 'BFS';
 
 const SEARCH_TYPE: SearchType = 'BFS';
 const DO_RAINBOW_EDGES = true;
+const DO_PHYSICS = false;
 
 const canvas = document.querySelector("canvas")!;
 
@@ -345,7 +346,7 @@ const doPhysics = (delta: number) => {
         edges.get(i)!.find((edge) => edge.endNodeLabel === otherNode.label) !==
         undefined
       ) {
-        const springMagnitude = (1 * (dist - 0.3) * delta) / 1000;
+        const springMagnitude = (1 * (dist - 0.3) * delta) / 10000 * 3 * 0;
 
         node.velocity.x += springMagnitude * Math.cos(angle);
         node.velocity.y += springMagnitude * Math.sin(angle);
@@ -353,7 +354,7 @@ const doPhysics = (delta: number) => {
         otherNode.velocity.y += -1 * springMagnitude * Math.sin(angle);
       }
 
-      const repulsionMagnitude = ((10.0 / Math.pow(dist, 2)) * delta) / 1000;
+      const repulsionMagnitude = ((10.0 / Math.pow(dist, 2)) * delta) / 10000 * 3400;
 
       node.velocity.x += -1 * repulsionMagnitude * Math.cos(angle);
       node.velocity.y += -1 * repulsionMagnitude * Math.sin(angle);
@@ -436,7 +437,9 @@ const draw = (time: number) => {
   const delta = time - lastTime;
   lastTime = time;
 
-  // doPhysics(delta);
+  if (DO_PHYSICS) {
+    doPhysics(delta);
+  }
 
   // moveWithClick();
 
