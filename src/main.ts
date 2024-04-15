@@ -3,10 +3,14 @@ import circleFragmentShaderSource from "./shaders/circle/frag.glsl?raw";
 import squareFragmentShaderSource from "./shaders/square/frag.glsl?raw";
 import "./style.css";
 
+import * as Tone from 'tone'
+
+const synth = new Tone.Synth().toDestination();
+
 type SearchType = 'DFS' | 'BFS';
 
-const SEARCH_TYPE: SearchType = 'BFS';
-const DO_RAINBOW_EDGES = true;
+const SEARCH_TYPE: SearchType = 'DFS';
+const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
 
 const canvas = document.querySelector("canvas")!;
@@ -263,6 +267,7 @@ const doDfsStep = () => {
           }
         }
       }
+      synth.triggerRelease()
       return;
     } else {
       dfsStack.push(
@@ -318,7 +323,10 @@ const doDfsStep = () => {
     lastColor = color as [number, number, number];
     changeEdgeColor(current[0], current[1], color as [number, number, number]);
     markedEdges.push([current[0], current[1]]);
+  } else {
+    synth.triggerAttack(0)
   }
+  synth.setNote(getNode(current[1]).position.y + 300);
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
       dfsStack.push([current[1], edge.endNodeLabel, current[2] + 1]);
