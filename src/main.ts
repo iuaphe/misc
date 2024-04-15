@@ -10,7 +10,7 @@ const synth = new Tone.Synth().toDestination();
 
 type SearchType = 'DFS' | 'BFS' | 'DJI';
 
-const SEARCH_TYPE: SearchType = 'DJI';
+const SEARCH_TYPE: string = 'DJI' satisfies SearchType;
 
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
@@ -259,7 +259,7 @@ for (let i = 0; i < nodes.length; i++) {
 }
 
 
-let dfsStack: [number | undefined, number, number][] = [[undefined, 0, 0]];
+let dfsStack: [number | undefined, number, number, number][] = [[undefined, 0, 0, 0]];
 let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
 let lastSeen = -1;
 let lastColor: [number, number, number] = [1, 0, 0];
@@ -322,14 +322,15 @@ const doDfsStep = () => {
   //   Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
   // );
 
-  synth.setNote(current[2] + 150);
+  synth.setNote(current[3] + 150);
 
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
       dfsStack.push([
         current[1], 
         edge.endNodeLabel, 
-        current[2] + Math.hypot(getNode(edge.endNodeLabel).position.x - thisPosition.x, getNode(edge.endNodeLabel).position.y - thisPosition.y)
+        Math.hypot(getNode(edge.endNodeLabel).position.x - thisPosition.x, getNode(edge.endNodeLabel).position.y - thisPosition.y),
+        current[3] + Math.hypot(getNode(edge.endNodeLabel).position.x - thisPosition.x, getNode(edge.endNodeLabel).position.y - thisPosition.y)
       ]);
       getNode(edge.endNodeLabel).color = [0, 1, 0];
       changeEdgeColor(current[1], edge.endNodeLabel, [0, 1, 0]);
