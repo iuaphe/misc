@@ -8,9 +8,9 @@ import * as Tone from 'tone'
 // const synth = new Tone.PolySynth().toDestination();
 const synth = new Tone.Synth().toDestination();
 
-type SearchType = 'DFS' | 'BFS' | 'DJI';
+type SearchType = 'DFS' | 'BFS' | 'DJI' | 'MST';
 
-const SEARCH_TYPE: string = 'DJI' satisfies SearchType;
+const SEARCH_TYPE: string = 'BFS' satisfies SearchType;
 
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
@@ -283,7 +283,7 @@ const doDfsStep = () => {
     current = dfsStack.pop()!
   } else if (SEARCH_TYPE === 'BFS') {
     current = dfsStack.splice(0, 1)[0]!;
-  } else if (SEARCH_TYPE === 'DJI') {
+  } else if (SEARCH_TYPE === 'MST') {
     let bestNode = -1;
     let bestDist = 1000000;
     for (let i = 0; i < dfsStack.length; i++) {
@@ -293,6 +293,17 @@ const doDfsStep = () => {
       }
     }
     current = dfsStack.splice(bestNode, 1)[0];
+  } else if (SEARCH_TYPE === 'DJI') {
+    let bestNode = -1;
+    let bestDist = 1000000;
+    for (let i = 0; i < dfsStack.length; i++) {
+      if (dfsStack[i][3] < bestDist) {
+        bestNode = i;
+        bestDist = dfsStack[i][3];
+      }
+    }
+    current = dfsStack.splice(bestNode, 1)[0];
+ 
   } else { throw new Error() }
   if (dfsVisited[current[1]]) {
     doDfsStep();
