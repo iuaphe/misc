@@ -5,11 +5,12 @@ import "./style.css";
 
 import * as Tone from 'tone'
 
+// const synth = new Tone.PolySynth().toDestination();
 const synth = new Tone.Synth().toDestination();
 
 type SearchType = 'DFS' | 'BFS';
 
-const SEARCH_TYPE: SearchType = 'DFS';
+const SEARCH_TYPE: SearchType = 'BFS';
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
 
@@ -225,23 +226,37 @@ const NUM_NODES = 300;
 
 for (let i = 0; i < NUM_NODES; i++) {
   addNode({
-    // x: Math.random() + i * 30,
+    // x: Math.random() + i * 80,
     // y: Math.random() * 500,
-    x: 10 * (i * 0.1 + Math.random() * 20 - 1.5) * Math.sin(i * 2 * Math.PI / NUM_NODES),
-    y: 10 * (i * 0.1 + Math.random() * 20 - 1.5) * Math.cos(i * 2 * Math.PI / NUM_NODES)
+    // x: 10 * (i * 0.1 + Math.random() * 20 - 1.5) * Math.sin(i * 2 * Math.PI / NUM_NODES),
+    // y: 10 * (i * 0.1 + Math.random() * 20 - 1.5) * Math.cos(i * 2 * Math.PI / NUM_NODES)
+    x: Math.random() * 1000,
+    y: Math.random() * 1000,
   });
 }
 
+// for (let i = 0; i < nodes.length; i++) {
+//   if (i < nodes.length - 1) {
+//     addEdge(i, i + 1);
+//   }
+//   // addEdge(i, (2 * i) % nodes.length);
+//   const j = Math.max(Math.min(i + Math.floor(Math.random() * 30) - 15, nodes.length - 1), 0);
+//   if (i !== j && Math.random() < 0.8) {
+//     addEdge(i, j);
+//   }
+// }
+
 for (let i = 0; i < nodes.length; i++) {
-  if (i < nodes.length - 1) {
-    addEdge(i, i + 1);
-  }
-  // addEdge(i, (2 * i) % nodes.length);
-  const j = Math.max(Math.min(i + Math.floor(Math.random() * 30) - 15, nodes.length - 1), 0);
-  if (i !== j && Math.random() < 0.8) {
-    addEdge(i, j);
+  for (let j = 0; j < i; j++) {
+    const n1 = getNode(i)
+    const n2 = getNode(j)
+    const dist = Math.hypot(n1.position.y - n2.position.y, n1.position.x - n2.position.x)
+    const p = Math.pow(0.02, dist / 200)
+    if (Math.random() < p) 
+      addEdge(i, j)
   }
 }
+
 
 let dfsStack: [number | undefined, number, number][] = [[undefined, 0, 0]];
 let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
@@ -326,7 +341,14 @@ const doDfsStep = () => {
   } else {
     synth.triggerAttack(0)
   }
-  synth.setNote(getNode(current[1]).position.y + 300);
+  // synth.releaseAll()
+  // synth.triggerAttack([getNode(current[1]).position.x, getNode(current[1]).position.y]);
+  // synth.setNote(getNode(current[1]).position.x + getNode(current[1]).position.y);
+  const rootPosition = getNode(0).position
+  const thisPosition = getNode(current[1]).position
+  synth.setNote(
+    Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
+  );
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
       dfsStack.push([current[1], edge.endNodeLabel, current[2] + 1]);
