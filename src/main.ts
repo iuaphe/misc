@@ -8,9 +8,10 @@ import * as Tone from 'tone'
 // const synth = new Tone.PolySynth().toDestination();
 const synth = new Tone.Synth().toDestination();
 
-type SearchType = 'DFS' | 'BFS';
+type SearchType = 'DFS' | 'BFS' | 'DJI';
 
-const SEARCH_TYPE: SearchType = 'BFS';
+const SEARCH_TYPE: SearchType = 'DJI';
+
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
 
@@ -266,16 +267,8 @@ let markedEdges: [number, number][] = [];
 
 const doDfsStep = () => {
   if (dfsStack.length === 0) {
-    let unvisited = -1;
     for (let i = 0; i < nodes.length; i++) {
-      if (!dfsVisited[i]) {
-        unvisited = i;
-        break;
-      }
-    }
-    if (unvisited === -1) {
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = 0; j < nodes.length; j++) {
+        for (let j = 0; j < i; j++) {
           if (markedEdges.find((edge) => edge[0] === i && edge[1] === j) === undefined 
         && markedEdges.find((edge) => edge[0] === j && edge[1] === i) === undefined) {
             removeEdge(i, j);
@@ -284,20 +277,23 @@ const doDfsStep = () => {
       }
       synth.triggerRelease()
       return;
-    } else {
-      dfsStack.push(
-        [undefined, unvisited, 0]
-      );
-    }
   }
   let current;
   if (SEARCH_TYPE === 'DFS') {
     current = dfsStack.pop()!
   } else if (SEARCH_TYPE === 'BFS') {
     current = dfsStack.splice(0, 1)[0]!;
-  } else {
-    throw new Error();
-  }
+  } else if (SEARCH_TYPE === 'DJI') {
+    let bestNode = -1;
+    let bestDist = 1000000;
+    for (let i = 0; i < dfsStack.length; i++) {
+      if (dfsStack[i][2] < bestDist) {
+        bestNode = i;
+        bestDist = dfsStack[i][2];
+      }
+    }
+    current = dfsStack.splice(bestNode, 1)[0];
+  } else { throw new Error() }
   if (dfsVisited[current[1]]) {
     doDfsStep();
     return
@@ -309,32 +305,7 @@ const doDfsStep = () => {
   nodes[current[1]].color = [0, 0, 1];
   lastSeen = current[1];
   if (current[0] !== undefined) {
-    let color;
-    if (DO_RAINBOW_EDGES) {
-
-    switch ((current[2] - 1) % 6) {
-      case 0:
-        color = [1, 0, 0];
-        break;
-      case 1:
-        color = [1, 0.5, 0];
-        break;
-      case 2:
-        color = [1, 1, 0];
-        break;
-      case 3:
-        color = [0, 1, 0];
-        break;
-      case 4:
-        color = [0, 0, 1];
-        break;
-      case 5:
-        color = [0.5, 0, 1];
-        break;
-    }
-  } else {
-    color = [1, 0, 0];
-  }
+    let color = [1, 0, 0];
     lastColor = color as [number, number, number];
     changeEdgeColor(current[0], current[1], color as [number, number, number]);
     markedEdges.push([current[0], current[1]]);
@@ -344,14 +315,22 @@ const doDfsStep = () => {
   // synth.releaseAll()
   // synth.triggerAttack([getNode(current[1]).position.x, getNode(current[1]).position.y]);
   // synth.setNote(getNode(current[1]).position.x + getNode(current[1]).position.y);
+
   const rootPosition = getNode(0).position
   const thisPosition = getNode(current[1]).position
-  synth.setNote(
-    Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
-  );
+  // synth.setNote(
+  //   Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
+  // );
+
+  synth.setNote(current[2] + 150);
+
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
-      dfsStack.push([current[1], edge.endNodeLabel, current[2] + 1]);
+      dfsStack.push([
+        current[1], 
+        edge.endNodeLabel, 
+        current[2] + Math.hypot(getNode(edge.endNodeLabel).position.x - thisPosition.x, getNode(edge.endNodeLabel).position.y - thisPosition.y)
+      ]);
       getNode(edge.endNodeLabel).color = [0, 1, 0];
       changeEdgeColor(current[1], edge.endNodeLabel, [0, 1, 0]);
     }
