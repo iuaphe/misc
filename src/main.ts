@@ -15,6 +15,10 @@ const SEARCH_TYPE: string = 'BFS' satisfies SearchType;
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
 
+const DONE_COLOR: [number, number, number] = [135 / 256, 161 / 256, 255 / 256];
+const SEEN_COLOR: [number, number, number] = [129 / 256, 247 / 256, 142 / 256];
+const CURRENT_COLOR: [number, number, number] = [250 / 256, 115 / 256, 140 / 256];
+
 const canvas = document.querySelector("canvas")!;
 
 const gl = canvas.getContext("webgl2")!;
@@ -262,7 +266,7 @@ for (let i = 0; i < nodes.length; i++) {
 let dfsStack: [number | undefined, number, number, number][] = [[undefined, 0, 0, 0]];
 let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
 let lastSeen = -1;
-let lastColor: [number, number, number] = [1, 0, 0];
+let lastColor: [number, number, number] = DONE_COLOR;
 let markedEdges: [number, number][] = [];
 
 const doDfsStep = () => {
@@ -313,10 +317,10 @@ const doDfsStep = () => {
   if (lastSeen !== -1) {
     nodes[lastSeen].color = lastColor;
   }
-  nodes[current[1]].color = [0, 0, 1];
+  nodes[current[1]].color = CURRENT_COLOR;
   lastSeen = current[1];
   if (current[0] !== undefined) {
-    let color = [1, 0, 0];
+    let color = DONE_COLOR;
     lastColor = color as [number, number, number];
     changeEdgeColor(current[0], current[1], color as [number, number, number]);
     markedEdges.push([current[0], current[1]]);
@@ -333,7 +337,7 @@ const doDfsStep = () => {
   //   Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
   // );
 
-  synth.setNote(current[3] + 150);
+  synth.setNote(current[3] / 2 + 150);
 
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
@@ -343,8 +347,8 @@ const doDfsStep = () => {
         Math.hypot(getNode(edge.endNodeLabel).position.x - thisPosition.x, getNode(edge.endNodeLabel).position.y - thisPosition.y),
         current[3] + Math.hypot(getNode(edge.endNodeLabel).position.x - thisPosition.x, getNode(edge.endNodeLabel).position.y - thisPosition.y)
       ]);
-      getNode(edge.endNodeLabel).color = [0, 1, 0];
-      changeEdgeColor(current[1], edge.endNodeLabel, [0, 1, 0]);
+      getNode(edge.endNodeLabel).color = SEEN_COLOR;
+      changeEdgeColor(current[1], edge.endNodeLabel, SEEN_COLOR);
     }
   }
 }
@@ -471,7 +475,7 @@ const draw = (time: number) => {
 
   gl.viewport(0, 0, canvas.width, canvas.height);
 
-  gl.clearColor(0, 0, 0, 0);
+  gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.enable(gl.BLEND);
