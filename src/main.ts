@@ -8,9 +8,9 @@ import * as Tone from 'tone'
 // const synth = new Tone.PolySynth().toDestination();
 const synth = new Tone.Synth().toDestination();
 
-type SearchType = 'DFS' | 'BFS' | 'DJI' | 'MST';
+type SearchType = 'DFS' | 'BFS' | 'DJI' | 'MST' | 'WFS';
 
-const SEARCH_TYPE: string = 'BFS' satisfies SearchType;
+const SEARCH_TYPE: string = 'DJI' satisfies SearchType;
 
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
@@ -308,6 +308,16 @@ const doDfsStep = () => {
     }
     current = dfsStack.splice(bestNode, 1)[0];
  
+  } else if (SEARCH_TYPE === 'WFS') {
+    let bestNode = -1;
+    let bestDist = -1000000;
+    for (let i = 0; i < dfsStack.length; i++) {
+      if (dfsStack[i][3] > bestDist) {
+        bestNode = i;
+        bestDist = dfsStack[i][3];
+      }
+    }
+    current = dfsStack.splice(bestNode, 1)[0];
   } else { throw new Error() }
   if (dfsVisited[current[1]]) {
     doDfsStep();
@@ -543,8 +553,13 @@ document.addEventListener("mousemove", (e) => {
 
   // console.log(x - mousePos.x, y - mousePos.y);
   if (pressing) {
-    viewOffset.x += x - mousePos.x;
-    viewOffset.y += y - mousePos.y;
+    viewScale = 0.0018530201888518425 * 0.8
+    viewOffset = {
+      "x": -500.0209900583026,
+      "y": -491.88282629328637
+    }
+    // viewOffset.x += x - mousePos.x;
+    // viewOffset.y += y - mousePos.y;
   }
 
   mousePos = { x, y };
