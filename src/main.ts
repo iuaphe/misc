@@ -6,11 +6,11 @@ import "./style.css";
 import * as Tone from 'tone'
 
 // const synth = new Tone.PolySynth().toDestination();
-const synth = new Tone.Synth().toDestination();
+const synth = new Tone.PolySynth(Tone.Synth).toDestination();
 
 type SearchType = 'DFS' | 'BFS' | 'DJI' | 'MST' | 'WFS' | 'RFS';
 
-const SEARCH_TYPE: string = 'MST' satisfies SearchType;
+const SEARCH_TYPE: string = 'BFS' satisfies SearchType;
 
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
@@ -269,6 +269,7 @@ let lastSeen = -1;
 let lastColor: [number, number, number] = DONE_COLOR;
 let markedEdges: [number, number][] = [];
 let n = 0;
+let lastNotes: [number, number] | undefined = undefined
 
 const doDfsStep = () => {
   if (dfsStack.length === 0) {
@@ -280,20 +281,26 @@ const doDfsStep = () => {
           }
         }
       }
-      synth.triggerRelease()
+      synth.triggerRelease(0)
       return;
   }
   let current;
-  if (n === 0) {
-    for (let i = 0; i < Math.floor(dfsStack.length / 2); i++) {
-      let temp = dfsStack[i]
-      dfsStack[i] = dfsStack[dfsStack.length - i - 1]
-      dfsStack[dfsStack.length - i - 1] = temp;
-    }
-  }
+  // if (n === 10) {
+  //   // for (let i = 0; i < Math.floor(dfsStack.length / 2); i++) {
+  //   //   let temp = dfsStack[i]
+  //   //   dfsStack[i] = dfsStack[dfsStack.length - i - 1]
+  //   //   dfsStack[dfsStack.length - i - 1] = temp;
+  //   // }
+  //   // dfsStack = dfsStack.slice(Math.floor(dfsStack.length / 2)).concat(dfsStack.slice(0, Math.floor(dfsStack.length / 2)))
+  //   dfsStack = dfsStack.slice(10).concat(dfsStack.slice(0, 10))
+  // }
   n++;
-  n %= 2;
-  current = dfsStack.pop()!
+  n %= 5;
+  if (n !== 0) {
+    current = dfsStack.pop()!
+  } else {
+    current = dfsStack.splice(0, 1)[0]!;
+  }
   /*
   if (SEARCH_TYPE === 'DFS') {
     current = dfsStack.pop()!
@@ -364,7 +371,11 @@ const doDfsStep = () => {
   //   Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
   // );
 
-  synth.setNote(current[3] / 4 + 150);
+  if (lastNotes !== undefined) {
+    synth.triggerRelease(lastNotes)
+  }
+  synth.triggerAttack([current[3] / 4 + 150, 1/3 * (current[3] / 4 + 150)]);
+  lastNotes = [current[3] / 4 + 150, 1/3 * (current[3] / 4 + 150)]
 
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
