@@ -8,9 +8,9 @@ import * as Tone from 'tone'
 // const synth = new Tone.PolySynth().toDestination();
 const synth = new Tone.Synth().toDestination();
 
-type SearchType = 'DFS' | 'BFS' | 'DJI' | 'MST' | 'WFS';
+type SearchType = 'DFS' | 'BFS' | 'DJI' | 'MST' | 'WFS' | 'RFS';
 
-const SEARCH_TYPE: string = 'DJI' satisfies SearchType;
+const SEARCH_TYPE: string = 'MST' satisfies SearchType;
 
 const DO_RAINBOW_EDGES = false;
 const DO_PHYSICS = false;
@@ -268,6 +268,7 @@ let dfsVisited: boolean[] = new Array(nodes.length).fill(false);
 let lastSeen = -1;
 let lastColor: [number, number, number] = DONE_COLOR;
 let markedEdges: [number, number][] = [];
+let n = 0;
 
 const doDfsStep = () => {
   if (dfsStack.length === 0) {
@@ -283,15 +284,26 @@ const doDfsStep = () => {
       return;
   }
   let current;
+  if (n === 0) {
+    for (let i = 0; i < Math.floor(dfsStack.length / 2); i++) {
+      let temp = dfsStack[i]
+      dfsStack[i] = dfsStack[dfsStack.length - i - 1]
+      dfsStack[dfsStack.length - i - 1] = temp;
+    }
+  }
+  n++;
+  n %= 2;
+  current = dfsStack.pop()!
+  /*
   if (SEARCH_TYPE === 'DFS') {
     current = dfsStack.pop()!
   } else if (SEARCH_TYPE === 'BFS') {
     current = dfsStack.splice(0, 1)[0]!;
   } else if (SEARCH_TYPE === 'MST') {
     let bestNode = -1;
-    let bestDist = 1000000;
+    let bestDist = -1000000;
     for (let i = 0; i < dfsStack.length; i++) {
-      if (dfsStack[i][2] < bestDist) {
+      if (dfsStack[i][2] > bestDist) {
         bestNode = i;
         bestDist = dfsStack[i][2];
       }
@@ -301,9 +313,11 @@ const doDfsStep = () => {
     let bestNode = -1;
     let bestDist = 1000000;
     for (let i = 0; i < dfsStack.length; i++) {
-      if (dfsStack[i][3] < bestDist) {
+      const nodePosition = nodes[dfsStack[i][1]].position
+      const score = dfsStack[i][3] + Math.hypot(nodePosition.y, 1000 - nodePosition.x)
+      if (score < bestDist) {
         bestNode = i;
-        bestDist = dfsStack[i][3];
+        bestDist = score;
       }
     }
     current = dfsStack.splice(bestNode, 1)[0];
@@ -318,7 +332,10 @@ const doDfsStep = () => {
       }
     }
     current = dfsStack.splice(bestNode, 1)[0];
+  } else if (SEARCH_TYPE === 'RFS') {
+    current = dfsStack.splice(Math.floor(Math.random() * dfsStack.length), 1)[0];
   } else { throw new Error() }
+  */
   if (dfsVisited[current[1]]) {
     doDfsStep();
     return
@@ -347,7 +364,7 @@ const doDfsStep = () => {
   //   Math.hypot(rootPosition.x - thisPosition.x, rootPosition.y - thisPosition.y) + 150
   // );
 
-  synth.setNote(current[3] / 2 + 150);
+  synth.setNote(current[3] / 4 + 150);
 
   for (const edge of edges.get(current[1])!) {
     if (!dfsVisited[edge.endNodeLabel]) {
