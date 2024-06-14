@@ -11,4 +11,7 @@ out vec4 outColor;
  
 void main() {
   outColor = vec4(u_color, 1.0);
+  outColor *= 
+    step(0.5, abs(v_position.x)) + 
+    step(0.5, abs(v_position.y));
 }
